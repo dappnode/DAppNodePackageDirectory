@@ -256,14 +256,13 @@ contract DAppNodePackageDirectory is Owned,Escapable {
 
     struct DAppNodePackage {
         string name;
-        address repo;
         DAppNodePackageStatus status;
     }
 
     DAppNodePackage[] DAppNodePackages;
 
-    event PackageAdded(uint indexed idPackage, string name, address repo);
-    event PackageUpdated(uint indexed idPackage, string name, address repo);
+    event PackageAdded(uint indexed idPackage, string name);
+    event PackageUpdated(uint indexed idPackage, string name);
     event StatusChanged(uint idPackage, DAppNodePackageStatus newStatus);
 
     /// @notice The Constructor assigns the `escapeHatchDestination` and the
@@ -287,35 +286,29 @@ contract DAppNodePackageDirectory is Owned,Escapable {
 
     /// @notice Add a new DAppNode package
     /// @param name the ENS name of the package
-    /// @param repo the AragonPackageManager address of the repo.
     /// @return the idPackage of the new package
     function addPackage (
-        string name,
-        address repo
+        string name
     ) onlyOwner public returns(uint idPackage) {
         idPackage = DAppNodePackages.length++;
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.name = name;
-        c.repo = repo;
         // An event to notify that a new package has been added
-        PackageAdded(idPackage,name,repo);
+        PackageAdded(idPackage,name);
     }
 
     /// @notice Update a DAppNode package
     /// @param idPackage the id of the package to be changed
     /// @param name the new ENS name of the package
-    /// @param repo the new AragonPackageManager address of the repo.
     function updatePackage (
         uint idPackage,
-        string name,
-        address repo
+        string name
     ) onlyOwner public {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.name = name;
-        c.repo = repo;
         // An event to notify that a package has been updated
-        PackageUpdated(idPackage,name,repo);
+        PackageUpdated(idPackage,name);
     }
 
     /// @notice Change the status of a DAppNode package
@@ -335,17 +328,14 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     /// @notice Returns the information of a DAppNode package
     /// @param idPackage the id of the package to be changed
     /// @return name the new name of the package
-    /// @return repo the AragonPackageManager address of the repo.
     /// @return status the status of the package
     function getPackage(uint idPackage) constant public returns (
         string name,
-        address repo,
         DAppNodePackageStatus status
     ) {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         name = c.name;
-        repo = c.repo;
         status = c.status;
     }
 
