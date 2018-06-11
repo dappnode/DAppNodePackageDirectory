@@ -8,5 +8,5 @@
 
 Smartcontracts to provide the DAppNode Package Directory
 
-Last deployment at 0xc8330fb0b7d80a7be4edb624139e15ec1f3ffea3 
+Last deployment at [0xc8330fb0b7d80a7be4edb624139e15ec1f3ffea3](https://etherscan.io/address/0xc8330fb0b7d80a7be4edb624139e15ec1f3ffea3)
 
