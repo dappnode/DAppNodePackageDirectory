@@ -85,7 +85,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         }
         c.status = status;
         // An event to notify that a new package has been added
-        PackageAdded(idPackage,name);
+        PackageAdded(idPackage, name);
     }
 
     /// @notice Update a DAppNode package
@@ -105,7 +105,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         c.position = position;
         c.status = status;
         // An event to notify that a package has been updated
-        PackageUpdated(idPackage,name);
+        PackageUpdated(idPackage, name);
     }
 
     /// @notice Change the status of a DAppNode package
@@ -139,8 +139,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     /// @param _featured List of the ids of the featured packages
     /// if needed ids [5,43]: _featured = 0x052b0000000000000...
     function changeFeatured(
-        bytes32 _featured,
-        uint128 newPosition
+        bytes32 _featured
     ) public onlyOwner {
         featured = _featured;
         FeaturedChanged(_featured);
