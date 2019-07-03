@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.10;
 /*
     Copyright 2016, Jordi Baylina
     Contributor: Adrià Massanet <adria@codecontext.io>
@@ -28,7 +28,7 @@ import "./ERC20.sol";
 ///  not blacklisted
 contract Escapable is Owned {
     address public escapeHatchCaller;
-    address public escapeHatchDestination;
+    address payable public escapeHatchDestination;
     mapping (address=>bool) private escapeBlacklist; // Token contract addresses
 
     /// @notice The Constructor assigns the `escapeHatchDestination` and the
@@ -41,7 +41,7 @@ contract Escapable is Owned {
     ///  Multisig) to send the ether held in this contract; if a neutral address
     ///  is required, the WHG Multisig is an option:
     ///  0x8Ff920020c8AD673661c8117f2855C384758C572 
-    function Escapable(address _escapeHatchCaller, address _escapeHatchDestination) public {
+    constructor(address _escapeHatchCaller, address payable _escapeHatchDestination) public {
         escapeHatchCaller = _escapeHatchCaller;
         escapeHatchDestination = _escapeHatchDestination;
     }
@@ -59,7 +59,7 @@ contract Escapable is Owned {
     /// @param _token the token contract address that is to be blacklisted 
     function blacklistEscapeToken(address _token) internal {
         escapeBlacklist[_token] = true;
-        EscapeHatchBlackistedToken(_token);
+        emit EscapeHatchBlackistedToken(_token);
     }
 
     /// @notice Checks to see if `_token` is in the blacklist of tokens
@@ -79,17 +79,17 @@ contract Escapable is Owned {
         uint256 balance;
 
         /// @dev Logic for ether
-        if (_token == 0x0) {
-            balance = this.balance;
+        if (_token == address(0)) {
+            balance = address(this).balance;
             escapeHatchDestination.transfer(balance);
-            EscapeHatchCalled(_token, balance);
+            emit EscapeHatchCalled(_token, balance);
             return;
         }
         /// @dev Logic for tokens
         ERC20 token = ERC20(_token);
-        balance = token.balanceOf(this);
+        balance = token.balanceOf(address(this));
         require(token.transfer(escapeHatchDestination, balance));
-        EscapeHatchCalled(_token, balance);
+        emit EscapeHatchCalled(_token, balance);
     }
 
     /// @notice Changes the address assigned to call `escapeHatch()`

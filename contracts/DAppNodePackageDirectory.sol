@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.10;
 
 /*
     Copyright 2018, Eduardo Antuña
@@ -27,18 +27,24 @@ import './Escapable.sol';
 
 contract DAppNodePackageDirectory is Owned,Escapable {
 
-    enum DAppNodePackageStatus {Preparing, Develop, Active, Deprecated, Deleted}
-
+    /// @param position Indicates the position of the package. position integers
+    /// do not have to be consecutive. The biggest integer will be shown first.
+    /// @param status - 0: Deleted, 1: Active, 2: Developing, +
+    /// @param name ENS name of the package
     struct DAppNodePackage {
+        uint128 position;
+        uint128 status;
         string name;
-        DAppNodePackageStatus status;
     }
 
+    bytes32 public featured;
     DAppNodePackage[] DAppNodePackages;
 
     event PackageAdded(uint indexed idPackage, string name);
     event PackageUpdated(uint indexed idPackage, string name);
-    event StatusChanged(uint idPackage, DAppNodePackageStatus newStatus);
+    event StatusChanged(uint idPackage, uint128 newStatus);
+    event PositionChanged(uint idPackage, uint128 newPosition);
+    event FeaturedChanged(bytes32 newFeatured);
 
     /// @notice The Constructor assigns the `escapeHatchDestination` and the
     ///  `escapeHatchCaller`
@@ -50,9 +56,9 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     ///  Multisig) to send the ether held in this contract; if a neutral address
     ///  is required, the WHG Multisig is an option:
     ///  0x8Ff920020c8AD673661c8117f2855C384758C572 
-    function DAppNodePackageDirectory(
+    constructor(
         address _escapeHatchCaller,
-        address _escapeHatchDestination
+        address payable _escapeHatchDestination
     ) 
         Escapable(_escapeHatchCaller, _escapeHatchDestination)
         public
@@ -61,29 +67,45 @@ contract DAppNodePackageDirectory is Owned,Escapable {
 
     /// @notice Add a new DAppNode package
     /// @param name the ENS name of the package
+    /// @param status status of the package
+    /// @param position to order the packages in the UI
     /// @return the idPackage of the new package
     function addPackage (
-        string name
-    ) onlyOwner public returns(uint idPackage) {
+        string memory name,
+        uint128 status,
+        uint128 position
+    ) public onlyOwner returns(uint idPackage) {
         idPackage = DAppNodePackages.length++;
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.name = name;
+        if (position == 0) {
+            c.position = uint128(1000 * (idPackage + 1));
+        } else {
+            c.position = position;
+        }
+        c.status = status;
         // An event to notify that a new package has been added
-        PackageAdded(idPackage,name);
+        emit PackageAdded(idPackage, name);
     }
 
     /// @notice Update a DAppNode package
     /// @param idPackage the id of the package to be changed
     /// @param name the new ENS name of the package
+    /// @param status status of the package
+    /// @param position to order the packages in the UI
     function updatePackage (
         uint idPackage,
-        string name
-    ) onlyOwner public {
+        string memory name,
+        uint128 status,
+        uint128 position
+    ) public onlyOwner {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.name = name;
+        c.position = position;
+        c.status = status;
         // An event to notify that a package has been updated
-        PackageUpdated(idPackage,name);
+        emit PackageUpdated(idPackage, name);
     }
 
     /// @notice Change the status of a DAppNode package
@@ -91,27 +113,72 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     /// @param newStatus the new status of the package
     function changeStatus(
         uint idPackage,
-        DAppNodePackageStatus newStatus
-    ) onlyOwner public {
+        uint128 newStatus
+    ) public onlyOwner {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.status = newStatus;
-        // An event to notify that the status of a packet has been updated
-        StatusChanged(idPackage, newStatus);
+        emit StatusChanged(idPackage, newStatus);
+    }
+    
+    /// @notice Switch the positio of two DAppNode packages
+    /// @param idPackage1 the id of the package to be switched
+    /// @param idPackage2 the id of the package to be switched
+    function switchPosition(
+        uint idPackage1,
+        uint idPackage2
+    ) public onlyOwner {
+        require(idPackage1 < DAppNodePackages.length);
+        require(idPackage2 < DAppNodePackages.length);
+
+        DAppNodePackage storage p1 = DAppNodePackages[idPackage1];
+        DAppNodePackage storage p2 = DAppNodePackages[idPackage2];
+        
+        uint128 tmp = p1.position;
+        p1.position = p2.position;
+        p2.position = tmp;
+        emit PositionChanged(idPackage1, p1.position);
+        emit PositionChanged(idPackage2, p2.position);
+
+    }
+
+    /// @notice Change the status of a DAppNode package
+    /// @param idPackage the id of the package to be changed
+    /// @param newPosition position to order the packages in the UI
+    function changePosition(
+        uint idPackage,
+        uint128 newPosition
+    ) public onlyOwner {
+        require(idPackage < DAppNodePackages.length);
+        DAppNodePackage storage c = DAppNodePackages[idPackage];
+        c.position = newPosition;
+        emit PositionChanged(idPackage, newPosition);
+    }
+
+    /// @notice Change the list of featured packages
+    /// @param _featured List of the ids of the featured packages
+    /// if needed ids [5,43]: _featured = 0x052b0000000000000...
+    function changeFeatured(
+        bytes32 _featured
+    ) public onlyOwner {
+        featured = _featured;
+        emit FeaturedChanged(_featured);
     }
 
     /// @notice Returns the information of a DAppNode package
     /// @param idPackage the id of the package to be changed
     /// @return name the new name of the package
     /// @return status the status of the package
-    function getPackage(uint idPackage) constant public returns (
-        string name,
-        DAppNodePackageStatus status
+    function getPackage(uint idPackage) public view returns (
+        string memory name,
+        uint128 status,
+        uint128 position
     ) {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         name = c.name;
         status = c.status;
+        position = c.position;
     }
 
     /// @notice its goal is to return the total number of DAppNode packages
