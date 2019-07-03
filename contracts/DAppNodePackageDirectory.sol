@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.10;
 
 /*
     Copyright 2018, Eduardo Antuña
@@ -56,9 +56,9 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     ///  Multisig) to send the ether held in this contract; if a neutral address
     ///  is required, the WHG Multisig is an option:
     ///  0x8Ff920020c8AD673661c8117f2855C384758C572 
-    function DAppNodePackageDirectory(
+    constructor(
         address _escapeHatchCaller,
-        address _escapeHatchDestination
+        address payable _escapeHatchDestination
     ) 
         Escapable(_escapeHatchCaller, _escapeHatchDestination)
         public
@@ -71,7 +71,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     /// @param position to order the packages in the UI
     /// @return the idPackage of the new package
     function addPackage (
-        string name,
+        string memory name,
         uint128 status,
         uint128 position
     ) public onlyOwner returns(uint idPackage) {
@@ -85,7 +85,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         }
         c.status = status;
         // An event to notify that a new package has been added
-        PackageAdded(idPackage, name);
+        emit PackageAdded(idPackage, name);
     }
 
     /// @notice Update a DAppNode package
@@ -95,7 +95,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     /// @param position to order the packages in the UI
     function updatePackage (
         uint idPackage,
-        string name,
+        string memory name,
         uint128 status,
         uint128 position
     ) public onlyOwner {
@@ -105,7 +105,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         c.position = position;
         c.status = status;
         // An event to notify that a package has been updated
-        PackageUpdated(idPackage, name);
+        emit PackageUpdated(idPackage, name);
     }
 
     /// @notice Change the status of a DAppNode package
@@ -118,13 +118,33 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.status = newStatus;
-        StatusChanged(idPackage, newStatus);
+        emit StatusChanged(idPackage, newStatus);
+    }
+    
+    /// @notice Switch the positio of two DAppNode packages
+    /// @param idPackage1 the id of the package to be switched
+    /// @param idPackage2 the id of the package to be switched
+    function switchPosition(
+        uint idPackage1,
+        uint idPackage2
+    ) public onlyOwner {
+        require(idPackage1 < DAppNodePackages.length);
+        require(idPackage2 < DAppNodePackages.length);
+
+        DAppNodePackage storage p1 = DAppNodePackages[idPackage1];
+        DAppNodePackage storage p2 = DAppNodePackages[idPackage2];
+        
+        uint128 tmp = p1.position;
+        p1.position = p2.position;
+        p2.position = tmp;
+        emit PositionChanged(idPackage1, p1.position);
+        emit PositionChanged(idPackage2, p2.position);
+
     }
 
     /// @notice Change the status of a DAppNode package
     /// @param idPackage the id of the package to be changed
-    /// @param newStatus the new status of the package
-    /// @param position to order the packages in the UI
+    /// @param newPosition position to order the packages in the UI
     function changePosition(
         uint idPackage,
         uint128 newPosition
@@ -132,7 +152,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         require(idPackage < DAppNodePackages.length);
         DAppNodePackage storage c = DAppNodePackages[idPackage];
         c.position = newPosition;
-        PositionChanged(idPackage, newPosition);
+        emit PositionChanged(idPackage, newPosition);
     }
 
     /// @notice Change the list of featured packages
@@ -142,7 +162,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
         bytes32 _featured
     ) public onlyOwner {
         featured = _featured;
-        FeaturedChanged(_featured);
+        emit FeaturedChanged(_featured);
     }
 
     /// @notice Returns the information of a DAppNode package
@@ -150,7 +170,7 @@ contract DAppNodePackageDirectory is Owned,Escapable {
     /// @return name the new name of the package
     /// @return status the status of the package
     function getPackage(uint idPackage) public view returns (
-        string name,
+        string memory name,
         uint128 status,
         uint128 position
     ) {
